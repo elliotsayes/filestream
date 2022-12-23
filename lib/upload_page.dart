@@ -120,7 +120,7 @@ class _UploadPageState extends State<UploadPage> {
                   if (data == null) {
                     return const Text('Empty data');
                   }
-                  final statusText = 'Uploading: ${data.uploadedChunks} / ${data.totalChunks} (${data.progress * 100}%) ${data.isComplete ? 'Complete' : '...'}}';
+                  final statusText = 'Uploading: ${data.uploadedChunks} / ${data.totalChunks} (${data.progress * 100}%) ${data.isComplete ? 'Complete' : '...'}';
                   return Text(statusText);
                 } else {
                   return const Text('No data');
