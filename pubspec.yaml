@@ -40,7 +40,7 @@ dependencies:
   arweave:
     git:
       url: https://github.com/elliotsayes/arweave-dart.git
-      ref: 3a36f84f0c8c99fa4182a0ac6bfe51d9d15e6671
+      ref: 3d8de4db587a69fe6bcce356115c040e33292649
 
 dev_dependencies:
   flutter_test:
