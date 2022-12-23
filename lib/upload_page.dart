@@ -22,6 +22,7 @@ class UploadPage extends StatefulWidget {
 class _UploadPageState extends State<UploadPage> {
   final Arweave client = Arweave();
 
+  String statusText = 'Waiting for file';
   String transactionId = '';
   Stream<TransactionUploader> uploadStatus = Stream.empty();
 
@@ -40,17 +41,33 @@ class _UploadPageState extends State<UploadPage> {
     final String filePath = file.path;
     final int dataSize = await file.length();
 
+    setState(() {
+      statusText = 'Preparing transaction for $fileName ($dataSize bytes)';
+    });
     final transaction = await client.transactions.prepare(
       TransactionStream.withBlobData(dataStreamGenerator: file.openRead, dataSize: dataSize),
       widget.wallet,
-    )
+    );
+
+    setState(() {
+      statusText = 'Tagging transaction for $fileName ($dataSize bytes)';
+    });
+    transaction
       ..addTag('file-name', fileName)
       ..addTag('upload-sdk', 'arweave-dart')
       ..addTag('upload-method', 'transaction-stream');
+
+    setState(() {
+      statusText = 'Signing transaction for $fileName ($dataSize bytes)';
+    });
     await transaction.sign(widget.wallet);
 
+    setState(() {
+      statusText = 'Uploading transaction for $fileName ($dataSize bytes)';
+    });
     final uploadResult = client.transactions.upload(transaction);
     setState(() {
+      statusText = 'Finished transaction for $fileName ($dataSize bytes)!';
       transactionId = transaction.id;
       uploadStatus = uploadResult;
     });
@@ -70,6 +87,7 @@ class _UploadPageState extends State<UploadPage> {
               child: const Text('Select File to upload'),
               onPressed: () => _openUploadFile(context),
             ),
+            Text(statusText),
             SelectableText(transactionId),
             StreamBuilder(
               builder: (context, snapshot) {
