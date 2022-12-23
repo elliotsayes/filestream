@@ -15,4 +15,4 @@ jobs:
           channel: beta
       - uses: bluefireteam/flutter-gh-pages@v8
         with:
-          baseHref: /hello-bundlr-flutter/
+          baseHref: /filestream/
