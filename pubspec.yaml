@@ -41,6 +41,10 @@ dependencies:
     git:
       url: https://github.com/elliotsayes/arweave-dart.git
       ref: 3d8de4db587a69fe6bcce356115c040e33292649
+  file_picker:
+    git:
+      url: https://github.com/elliotsayes/flutter_file_picker.git
+      ref: 4999175cacb6e783e1721f3c86c2f7192a9af3ae
 
 dev_dependencies:
   flutter_test:

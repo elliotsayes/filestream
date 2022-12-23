@@ -2,9 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:html';
 import 'dart:typed_data';
 
 import 'package:arweave/arweave.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
@@ -29,48 +31,70 @@ class _UploadPageState extends State<UploadPage> {
   Future<void> _openUploadFile(BuildContext context) async {
     final navigator = Navigator.of(context);
 
-    const XTypeGroup typeGroup = XTypeGroup(
-      label: 'file',
-    );
-    final XFile? file = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
-    
-    if (file == null) {
-      return;
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        withData: false,
+        withReadStream: true,
+      );
+
+      if (result?.files.length != 1) {
+        setState(() {
+          statusText = 'No file selected';
+        });
+        return;
+      }
+
+      final file = result!.files.first;
+      final fileName = file.name;
+      final dataSize = file.size;
+
+      if (file.readStream == null) {
+        setState(() {
+          statusText = 'File is not streamable';
+        });
+        return;
+      }
+
+      Stream<Uint8List> dataStreamGenerator([int? s, int? e]) {
+        return file.readStream!(s, e).asyncMap((chunk) => chunk as Uint8List);
+      }
+
+      setState(() {
+        statusText = 'Preparing transaction for $fileName ($dataSize bytes)';
+      });
+      final transaction = await client.transactions.prepare(
+        TransactionStream.withBlobData(dataStreamGenerator: dataStreamGenerator, dataSize: dataSize),
+        widget.wallet,
+      );
+
+      setState(() {
+        statusText = 'Tagging transaction for $fileName ($dataSize bytes)';
+      });
+      transaction
+        ..addTag('file-name', fileName)
+        ..addTag('upload-sdk', 'arweave-dart')
+        ..addTag('upload-method', 'transaction-stream');
+
+      setState(() {
+        statusText = 'Signing transaction for $fileName ($dataSize bytes)';
+      });
+      await transaction.sign(widget.wallet);
+
+      setState(() {
+        statusText = 'Uploading transaction for $fileName ($dataSize bytes)';
+      });
+      final uploadResult = client.transactions.upload(transaction);
+      setState(() {
+        transactionId = transaction.id;
+        uploadStatus = uploadResult;
+      });
+    } catch (e) {
+      print(e);
+      // setState(() {
+      //   statusText = 'Error: $e';
+      // });
+      rethrow;
     }
-    final String fileName = file.name;
-    final String filePath = file.path;
-    final int dataSize = await file.length();
-
-    setState(() {
-      statusText = 'Preparing transaction for $fileName ($dataSize bytes)';
-    });
-    final transaction = await client.transactions.prepare(
-      TransactionStream.withBlobData(dataStreamGenerator: file.openRead, dataSize: dataSize),
-      widget.wallet,
-    );
-
-    setState(() {
-      statusText = 'Tagging transaction for $fileName ($dataSize bytes)';
-    });
-    transaction
-      ..addTag('file-name', fileName)
-      ..addTag('upload-sdk', 'arweave-dart')
-      ..addTag('upload-method', 'transaction-stream');
-
-    setState(() {
-      statusText = 'Signing transaction for $fileName ($dataSize bytes)';
-    });
-    await transaction.sign(widget.wallet);
-
-    setState(() {
-      statusText = 'Uploading transaction for $fileName ($dataSize bytes)';
-    });
-    final uploadResult = client.transactions.upload(transaction);
-    setState(() {
-      statusText = 'Finished transaction for $fileName ($dataSize bytes)!';
-      transactionId = transaction.id;
-      uploadStatus = uploadResult;
-    });
   }
 
   @override
@@ -96,7 +120,7 @@ class _UploadPageState extends State<UploadPage> {
                   if (data == null) {
                     return const Text('Empty data');
                   }
-                  final statusText = 'Uploading: ${data.uploadedChunks} / ${data.totalChunks} (${data.progress * 100}%)';
+                  final statusText = 'Uploading: ${data.uploadedChunks} / ${data.totalChunks} (${data.progress * 100}%) ${data.isComplete ? 'Complete' : '...'}}';
                   return Text(statusText);
                 } else {
                   return const Text('No data');
