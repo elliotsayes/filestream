@@ -9,6 +9,7 @@ import 'package:arweave/arweave.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:mime/mime.dart';
 
 /// Home Page of the application
 class UploadPage extends StatefulWidget {
@@ -74,6 +75,9 @@ class _UploadPageState extends State<UploadPage> {
         ..addTag('file-name', fileName)
         ..addTag('upload-sdk', 'arweave-dart')
         ..addTag('upload-method', 'transaction-stream');
+
+      final mime = lookupMimeType(fileName);
+      if (mime != null)  transaction.addTag('Content-Type', mime);
 
       setState(() {
         statusText = 'Signing transaction for $fileName ($dataSize bytes)';
